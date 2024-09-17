@@ -7,6 +7,7 @@ from aiogram import Bot, Dispatcher
 from dotenv import load_dotenv
 
 from db import create_table
+from handlers import register_handlers
 
 
 # Загрузим переменные окружения из файла .env
@@ -22,6 +23,9 @@ dp = Dispatcher()
 async def main():
     # Создаем таблицу в базе данных
     await create_table()
+
+    # Регистрируем все хэндлеры
+    register_handlers(dp)
 
     # Объект бота
     bot = Bot(token=API_TOKEN)
