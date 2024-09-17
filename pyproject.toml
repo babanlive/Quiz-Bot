@@ -13,6 +13,42 @@ aiosqlite = "^0.20.0"
 python-dotenv = "^1.0.1"
 
 
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.6.5"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+lint.select = [
+  "F",   # pyflakes
+  "A",   # flake8-builtins
+  "E",   # pycodestyle
+  "W",   # pycodestyle
+  "N",   # pep8-naming  
+  "UP",  # pyupgrade,
+  "I",   # isort
+  "B",   # flake8-bugbear
+  "RET", # flake8-return
+]
+
+fix = false
+show-fixes = true
+output-format = "full"
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = "double"
+
+[tool.ruff.lint.isort]
+lines-between-types = 1
+lines-after-imports = 2
+
+[tool.ruff.lint.mccabe]
+# Flag errors (`C901`) whenever the complexity level exceeds 6.
+max-complexity = 6
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
