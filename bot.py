@@ -10,27 +10,19 @@ from db import create_table
 from handlers import register_handlers
 
 
-# Загрузим переменные окружения из файла .env
 load_dotenv()
 
-# Получаем токен из переменной окружения
 API_TOKEN = os.getenv('API_TOKEN')
 
-# Диспетчер
 dp = Dispatcher()
 
 
 async def main():
-    # Создаем таблицу в базе данных
     await create_table()
 
-    # Регистрируем все хэндлеры
     register_handlers(dp)
 
-    # Объект бота
     bot = Bot(token=API_TOKEN)
-
-    # Запускаем процесс поллинга новых апдейтов
     await dp.start_polling(bot)
 
 

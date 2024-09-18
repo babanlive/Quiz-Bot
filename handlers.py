@@ -22,25 +22,25 @@ async def cmd_quiz(message: types.Message):
 
 async def new_quiz(message: types.Message):
     user_id = message.from_user.id
-    await update_quiz_index(user_id, 0, 0)
+    await update_quiz_index(user_id, 0, 0, 0)
     await get_question(message, user_id)
 
 
 async def cmd_stats(message: types.Message):
     user_id = message.from_user.id
-    current_question_index, point = await get_user_stats(user_id)
+    current_question_index, current_result, last_result = await get_user_stats(user_id)
     if current_question_index >= len(quiz_data):
-        await message.answer(f'Ваш последний результат: {point} из {len(quiz_data)}')
+        await message.answer(f'Ваш последний результат: {last_result} из {len(quiz_data)}')
     else:
-        await message.answer(f'Для отображения статистики завершите текущий квиз')
+        await message.answer(f'Текущий результат: {current_result} из {current_question_index}')
 
 
 def generate_options_keyboard(answer_options, right_answer):
     builder = InlineKeyboardBuilder()
-    for option in answer_options:
+    for index, option in enumerate(answer_options):
         builder.add(
             types.InlineKeyboardButton(
-                text=option, callback_data='right_answer' if option == right_answer else 'wrong_answer'
+                text=option, callback_data=f'right_answer|{index}' if option == right_answer else f'wrong_answer|{index}'
             )
         )
     builder.adjust(1)
@@ -48,7 +48,7 @@ def generate_options_keyboard(answer_options, right_answer):
 
 
 async def get_question(message: types.Message, user_id: int):
-    current_question_index, point = await get_user_stats(user_id)
+    current_question_index, current_result, last_result = await get_user_stats(user_id)
     correct_option = quiz_data[current_question_index]['correct_option']
     options = quiz_data[current_question_index]['options']
     keyboard = generate_options_keyboard(options, options[correct_option])
@@ -56,46 +56,58 @@ async def get_question(message: types.Message, user_id: int):
 
 
 async def right_answer(callback: types.CallbackQuery):
+    callback_data = callback.data.split('|')
+    index = int(callback_data[1])
+    selected_answer = callback.message.reply_markup.inline_keyboard[index][0].text
     await callback.bot.edit_message_reply_markup(
         chat_id=callback.from_user.id, message_id=callback.message.message_id, reply_markup=None
     )
 
-    await callback.message.answer('Верно!')
-    current_question_index, point = await get_user_stats(callback.from_user.id)
-    # Обновление номера текущего вопроса в базе данных
-    current_question_index += 1
-    # увеличиваем счетчик правильных ответов
-    point = +1
+    await callback.message.answer(f'Ваш ответ: {selected_answer}. Верно!')
 
-    await update_quiz_index(callback.from_user.id, current_question_index, point)
+    current_question_index, current_result, last_result = await get_user_stats(callback.from_user.id)
+    current_question_index += 1
+    current_result += 1
 
     if current_question_index < len(quiz_data):
+        await update_quiz_index(callback.from_user.id, current_question_index, current_result)
         await get_question(callback.message, callback.from_user.id)
     else:
-        await callback.message.answer('Это был последний вопрос. Квиз завершен!')
+        await update_quiz_index(
+            callback.from_user.id, current_question_index, current_result, last_result=current_result
+        )
+        await callback.message.answer(
+            f'Это был последний вопрос. Квиз завершен!\nВаш результат: {current_result} из {len(quiz_data)}.'
+        )
 
 
 async def wrong_answer(callback: types.CallbackQuery):
+    callback_data = callback.data.split('|')
+    index = int(callback_data[1])
+    selected_answer = callback.message.reply_markup.inline_keyboard[index][0].text
     await callback.bot.edit_message_reply_markup(
         chat_id=callback.from_user.id, message_id=callback.message.message_id, reply_markup=None
     )
 
-    # Получение текущего вопроса из словаря состояний пользователя
-    current_question_index, point = await get_user_stats(callback.from_user.id)
+    current_question_index, current_result, last_result = await get_user_stats(callback.from_user.id)
     correct_option = quiz_data[current_question_index]['correct_option']
 
     await callback.message.answer(
-        f"Неправильно. Правильный ответ: {quiz_data[current_question_index]['options'][correct_option]}"
+        f"Ваш ответ: {selected_answer}. Неправильно.\nПравильный ответ: {quiz_data[current_question_index]['options'][correct_option]}"
     )
 
-    # Обновление номера текущего вопроса в базе данных
     current_question_index += 1
-    await update_quiz_index(callback.from_user.id, current_question_index, point)
 
     if current_question_index < len(quiz_data):
+        await update_quiz_index(callback.from_user.id, current_question_index, current_result)
         await get_question(callback.message, callback.from_user.id)
     else:
-        await callback.message.answer('Это был последний вопрос. Квиз завершен!')
+        await update_quiz_index(
+            callback.from_user.id, current_question_index, current_result, last_result=current_result
+        )
+        await callback.message.answer(
+            f'Это был последний вопрос. Квиз завершен!\nВаш результат: {current_result} из {len(quiz_data)}.'
+        )
 
 
 def register_handlers(dp: Dispatcher):
@@ -103,5 +115,5 @@ def register_handlers(dp: Dispatcher):
     dp.message.register(cmd_quiz, Command('quiz'))
     dp.message.register(cmd_stats, Command('stats'))
     dp.message.register(cmd_quiz, F.text == 'Начать игру')
-    dp.callback_query.register(right_answer, F.data == 'right_answer')
-    dp.callback_query.register(wrong_answer, F.data == 'wrong_answer')
+    dp.callback_query.register(right_answer, F.data.contains('right_answer'))
+    dp.callback_query.register(wrong_answer, F.data.contains('wrong_answer'))
