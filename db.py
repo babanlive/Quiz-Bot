@@ -7,23 +7,23 @@ DB_NAME = 'quiz_bot.db'
 async def create_table():
     async with aiosqlite.connect(DB_NAME) as db:
         await db.execute("""CREATE TABLE IF NOT EXISTS quiz_state (
-                                user_id INTEGER PRIMARY KEY, 
-                                question_index INTEGER
+                                user_id INTEGER PRIMARY KEY,
+                                question_index INTEGER,
+                                point INTEGER DEFAULT 0
                             )""")
         await db.commit()
 
-
-async def get_quiz_index(user_id):
+async def get_user_stats(user_id):
     async with aiosqlite.connect(DB_NAME) as db:
-        async with db.execute('SELECT question_index FROM quiz_state WHERE user_id = ?', (user_id,)) as cursor:
+        async with db.execute('SELECT question_index, point FROM quiz_state WHERE user_id = ?', (user_id,)) as cursor:
             result = await cursor.fetchone()
-            return result[0] if result else 0
+            return result if result else (0, 0)
 
 
-async def update_quiz_index(user_id, index):
+async def update_quiz_index(user_id, index, point):
     async with aiosqlite.connect(DB_NAME) as db:
         await db.execute(
-            'INSERT OR REPLACE INTO quiz_state (user_id, question_index) VALUES (?, ?)',
-            (user_id, index),
+            'INSERT OR REPLACE INTO quiz_state (user_id, question_index, point) VALUES (?, ?, ?)',
+            (user_id, index, point),
         )
         await db.commit()
