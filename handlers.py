@@ -10,7 +10,7 @@ async def cmd_start(message: types.Message):
     builder = ReplyKeyboardBuilder()
     builder.add(types.KeyboardButton(text='Начать игру'))
     await message.answer(
-        f'Добро пожаловать в квиз!\nДля начала игры нажмите кнопку "Начать игру"',
+        'Добро пожаловать в квиз!\nДля начала игры нажмите "Начать игру"',
         reply_markup=builder.as_markup(resize_keyboard=True),
     )
 
@@ -93,7 +93,8 @@ async def wrong_answer(callback: types.CallbackQuery):
     correct_option = quiz_data[current_question_index]['correct_option']
 
     await callback.message.answer(
-        f"Ваш ответ: {selected_answer}. Неправильно.\nПравильный ответ: {quiz_data[current_question_index]['options'][correct_option]}"
+        f"Ваш ответ: {selected_answer}. Неправильно.\n"
+        f"Правильный ответ: {quiz_data[current_question_index]['options'][correct_option]}"
     )
 
     current_question_index += 1
