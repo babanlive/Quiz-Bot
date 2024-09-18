@@ -9,9 +9,12 @@ async def create_table():
         await db.execute("""CREATE TABLE IF NOT EXISTS quiz_state (
                                 user_id INTEGER PRIMARY KEY,
                                 question_index INTEGER,
-                                point INTEGER DEFAULT 0
+                                current_point INTEGER DEFAULT 0
+                                last_point INTEGER DEFAULT 0
+
                             )""")
         await db.commit()
+
 
 async def get_user_stats(user_id):
     async with aiosqlite.connect(DB_NAME) as db:
@@ -20,10 +23,17 @@ async def get_user_stats(user_id):
             return result if result else (0, 0)
 
 
-async def update_quiz_index(user_id, index, point):
+async def update_quiz_index(user_id, index, point=None):
     async with aiosqlite.connect(DB_NAME) as db:
-        await db.execute(
-            'INSERT OR REPLACE INTO quiz_state (user_id, question_index, point) VALUES (?, ?, ?)',
-            (user_id, index, point),
-        )
+        if point is not None:
+            await db.execute(
+                'INSERT OR REPLACE INTO quiz_state (user_id, question_index, point) VALUES (?, ?, ?)',
+                (user_id, index, point),
+            )
+        else:
+            await db.execute(
+                'INSERT OR REPLACE INTO quiz_state (user_id, question_index) VALUES (?, ?)',
+                (user_id, index),
+            )
+
         await db.commit()
